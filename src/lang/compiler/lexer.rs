@@ -6,41 +6,72 @@ pub enum TokenType {
     Unknown,
 
     // Single char tokens
-    /// =
+    At,
+    Colon,
     Equals,
-
-    /// ;
+    LeftBrace,
+    LeftParen,
+    RightBrace,
+    RightParen,
     Semicolon,
+    Star,
 
     // Multi char tokens / keywords
-
-    /// let
+    Function,
     Let,
+    Return,
 
-    
     // N-char tokens
-
-
-    /// Identifier
     Identifier,
-
-    /// Integer literals
     IntegerLiteral,
+}
 
+impl From<TokenType> for String {
+    fn from(token: TokenType) -> String {
+        let token_str = match token {
+            TokenType::Unknown => "UNKNOWN",
+            TokenType::At => "AT",
+            TokenType::Colon => "COLON",
+            TokenType::Equals => "EQUALS",
+            TokenType::LeftBrace => "LEFT_BRC",
+            TokenType::LeftParen => "LEFT_PAR",
+            TokenType::RightBrace => "RGHT_BRC",
+            TokenType::RightParen => "RGHT_PAR",
+            TokenType::Semicolon => "SEMICOL",
+            TokenType::Star => "STAR",
+            TokenType::Function => "K_FUNC",
+            TokenType::Let => "K_LET",
+            TokenType::Return => "K_RET",
+            TokenType::Identifier => "L_IDENT",
+            TokenType::IntegerLiteral => "L_INT",
+        }.to_string();
+
+        assert!(token_str.len() <= 8, "Max 8 chars for token string, \"{}\" is too long", token_str);
+
+        token_str
+    }
 }
 
 static KEYWORDS: phf::Map<&'static str, TokenType> = phf::phf_map! {
     "let" => TokenType::Let,
+    "function" => TokenType::Function,
+    "return" => TokenType::Return,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct Token {
     pub(crate) type_: TokenType,
     pub(crate) value: String,
-    pub(crate) span: std::ops::Range<usize>
+    pub(crate) span: std::ops::Range<usize>,
 }
 
-#[derive(Debug)]
+impl std::fmt::Display for Token {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:8} | {:16} | {:#04}..{:#04}", String::from(self.type_), self.value, self.span.start, self.span.end)
+    }
+}
+
+#[derive(Debug, Clone)]
 pub(crate) struct Lexer<'a> {
     pub(crate) chars: std::iter::Peekable<std::str::Chars<'a>>,
     pub(crate) tokens: Vec<Token>,
@@ -49,7 +80,7 @@ pub(crate) struct Lexer<'a> {
 
 macro_rules! make_token {
     ($type_:ident, $value:expr, $span:expr) => {
-       Token {
+        Token {
             type_: TokenType::$type_,
             value: $value,
             span: $span,
@@ -62,59 +93,111 @@ impl<'a> Iterator for Lexer<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.skip_whitespace();
-        
-        loop {
-            let start_position = self.position;
 
-            match self.read_char() {
-                Some('=') => return Some(make_token!(Equals, String::from("="), start_position..self.position)),
-                Some(';') => return Some(make_token!(Semicolon, String::from(";"), start_position..self.position)),
-                Some(c) if c.is_ascii_alphabetic() => {
-                    let str = self.continue_while(c, |c| c.is_ascii_alphanumeric() || *c == '_');
-                    let ident = str.into_iter().collect::<String>();
+        let start_position = self.position;
 
-                    if let Some(keyword) = KEYWORDS.get(ident.as_str()) {
-                        return Some(Token {
-                            type_: *keyword,
-                            value: ident,
-                            span: start_position..self.position,
-                        });
-                    }
+        match self.read_char() {
+            Some('@') => Some(make_token!(
+                At,
+                String::from("@"),
+                start_position..self.position
+            )),
+            Some(':') => Some(make_token!(
+                Colon,
+                String::from(":"),
+                start_position..self.position
+            )),
+            Some('=') => Some(make_token!(
+                Equals,
+                String::from("="),
+                start_position..self.position
+            )),
+            Some('{') => Some(make_token!(
+                LeftBrace,
+                String::from("{"),
+                start_position..self.position
+            )),
+            Some('(') => Some(make_token!(
+                LeftParen,
+                String::from("("),
+                start_position..self.position
+            )),
+            Some(')') => Some(make_token!(
+                RightParen,
+                String::from(")"),
+                start_position..self.position
+            )),
+            Some('}') => Some(make_token!(
+                RightBrace,
+                String::from("}"),
+                start_position..self.position
+            )),
+            Some(';') => Some(make_token!(
+                Semicolon,
+                String::from(";"),
+                start_position..self.position
+            )),
+            Some('*') => Some(make_token!(
+                Star,
+                String::from("*"),
+                start_position..self.position
+            )),
+            Some(c) if c.is_ascii_alphabetic() => {
+                let str = self.continue_while(c, |c| c.is_ascii_alphanumeric() || *c == '_');
+                let ident = str.into_iter().collect::<String>();
 
-                    return Some(make_token!(Identifier, ident, start_position..self.position));
+                if let Some(keyword) = KEYWORDS.get(ident.as_str()) {
+                    Some(Token {
+                        type_: *keyword,
+                        value: ident,
+                        span: start_position..self.position,
+                    })
+                } else {
+                    Some(make_token!(
+                        Identifier,
+                        ident,
+                        start_position..self.position
+                    ))
                 }
-
-                Some(c) if c.is_ascii_digit() => {
-                    let str = self.continue_while(c, |c| c.is_ascii_digit());
-                    let ident = str.into_iter().collect::<String>();
-                    return Some(make_token!(IntegerLiteral, ident, start_position..self.position));
-                }
-
-                Some(c) => return Some(make_token!(Unknown, String::from(c), start_position..self.position)),
-
-                None => return None,
             }
+
+            Some(c) if c.is_ascii_digit() => {
+                let str = self.continue_while(c, |c| c.is_ascii_digit());
+                let ident = str.into_iter().collect::<String>();
+                Some(make_token!(
+                    IntegerLiteral,
+                    ident,
+                    start_position..self.position
+                ))
+            }
+
+            Some(c) => Some(make_token!(
+                Unknown,
+                String::from(c),
+                start_position..self.position
+            )),
+            None => return None,
         }
     }
 }
 
-impl Lexer<'_> {
-    pub(crate) fn new(input: &str) -> Lexer {
-        let mut lexer = Lexer {
-            chars: input.chars().peekable(),
+impl<'a> Lexer<'a> {
+    pub(crate) fn new() -> Lexer<'a> {
+        Lexer {
+            chars: "".chars().peekable(),
             tokens: Vec::new(),
             position: 0,
-        };
-
-        lexer
+        }
     }
 
-    pub(crate) fn lex(&mut self) -> () {
+    pub(crate) fn lex(&mut self, input: &'a str) -> () {
+        self.tokens.clear();
+        self.chars = input.chars().peekable();
         while let Some(token) = self.next() {
             self.tokens.push(token);
         }
     }
-    
+
     fn skip_whitespace(&mut self) -> () {
         while let Some(_) = self.chars.next_if(|c| c.is_whitespace()) {
             self.position += 1;
@@ -127,7 +210,7 @@ impl Lexer<'_> {
             self.position += 1;
         }
         c
-    }  
+    }
 
     fn continue_while(&mut self, c: char, f: impl Fn(&char) -> bool) -> Vec<char> {
         let mut v = vec![c];
@@ -138,65 +221,25 @@ impl Lexer<'_> {
 
         v
     }
+
+    pub(crate) fn token_ref(&mut self) -> &mut Vec<Token> {
+        &mut self.tokens
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use log::debug;
+    use crate::tests::before_each;
 
-    fn before_each() {
-        let _ = env_logger::builder()
-            .filter_level(log::LevelFilter::max())
-            .is_test(true)
-            .try_init()
-            .unwrap();
-        // Logger should be set to debug level for tests
-        debug!("Logger initialized");
-    }
-    
     #[test]
     fn test_lexer() {
         before_each();
         let input = "let x = 5;";
-        let mut lexer = Lexer::new(input);
-        lexer.lex();
-        debug!("{:#?}", lexer.tokens);
+        let mut lexer = Lexer::new();
+        lexer.lex(input);
         assert_eq!(lexer.tokens.len(), 5);
-
-        /*
-         * Expected output:
-         *
-         * Token {
-         *    type_: TokenType::Let,
-         *    value: "let",
-         *    span: 0..3,
-         * },
-         * 
-         * Token {
-         *    type_: TokenType::Identifier,
-         *    value: "x",
-         *    span: 4..5,
-         * },
-         * 
-         * Token {
-         *    type_: TokenType::Equals,
-         *    value: "=",
-         *    span: 6..7,
-         * },
-         *
-         * Token {
-         *    type_: TokenType::IntegerLiteral,
-         *    value: "5",
-         *    span: 8..9,
-         * },
-         *
-         * Token {
-         *   type_: TokenType::Semicolon,
-         *   value: ";",
-         *   span: 9..10,
-         * },
-         */
 
         assert_eq!(lexer.tokens[0].type_, TokenType::Let);
         assert_eq!(lexer.tokens[0].value, "let");
@@ -217,6 +260,5 @@ mod tests {
         assert_eq!(lexer.tokens[4].type_, TokenType::Semicolon);
         assert_eq!(lexer.tokens[4].value, ";");
         assert_eq!(lexer.tokens[4].span, 9..10);
-
     }
 }
