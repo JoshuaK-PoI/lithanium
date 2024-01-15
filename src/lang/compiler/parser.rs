@@ -1,11 +1,13 @@
-use super::{lexer::Token, CompilerResult, CompilerError, ErrorCode};
+use super::{token::{Token, TokenType}, CompilerResult, CompilerError, ErrorCode, statement::{Statement, StatementType, LetStatement}};
+use crate::lang::util::vec::Unshift;
 
 #[derive(Debug, Clone)]
-pub(crate) struct AST {}
+pub(crate) struct AST {
+    statements: Vec<Statement>
+}
 
 #[derive(Debug, Clone)]
 pub(crate) struct Parser {}
-
 
 impl Parser {
     pub(crate) fn new() -> Self {
@@ -13,22 +15,14 @@ impl Parser {
     }
 
     pub(crate) fn parse<'a>(&'a mut self, tokens: &'a mut Vec<Token>) -> CompilerResult<AST> {
+        let mut ast = AST {
+            statements: Vec::new(),
+        };
 
-        while let Some(token) = tokens.iter().next() {
-            match token.type_ {
-                _ => {
-                    return Err(CompilerError {
-                        error_code: ErrorCode::UnexpectedToken,
-                        error_message: String::from("Unexpected token"),
-                        span_message: String::from(""),
-                        token,
-                        help: Some(String::from("Expected one of: - TODO: List expected tokens")),
-                        info: None,
-                    });
-                }
-            }
+        while let Some(token) = tokens.unshift() {
+            ast.statements.push(Statement::parse(token, tokens)?);
         }
 
-        Ok(AST {})
+        Ok(ast)
     }
 }

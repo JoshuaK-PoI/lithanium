@@ -12,17 +12,18 @@ mod tests {
     use log::debug;
     use std::fs;
     use std::path::Path;
+    use std::sync::Once;
 
     use crate::lang::compiler::Compiler;
 
+    static INIT: Once = Once::new();
+
     pub(crate) fn before_each() {
-        let _ = env_logger::builder()
-            .filter_level(log::LevelFilter::max())
+        INIT.call_once(|| env_logger::builder()
+            .filter_level(log::LevelFilter::Debug)
             .is_test(true)
             .try_init()
-            .unwrap();
-        // Logger should be set to debug level for tests
-        debug!("Logger initialized");
+            .unwrap());
     }
 
     #[test]

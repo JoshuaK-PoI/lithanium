@@ -1,75 +1,4 @@
-use log::debug;
-
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub enum TokenType {
-    // Special tokens
-    Unknown,
-
-    // Single char tokens
-    At,
-    Colon,
-    Equals,
-    LeftBrace,
-    LeftParen,
-    RightBrace,
-    RightParen,
-    Semicolon,
-    Star,
-
-    // Multi char tokens / keywords
-    Function,
-    Let,
-    Return,
-
-    // N-char tokens
-    Identifier,
-    IntegerLiteral,
-}
-
-impl From<TokenType> for String {
-    fn from(token: TokenType) -> String {
-        let token_str = match token {
-            TokenType::Unknown => "UNKNOWN",
-            TokenType::At => "AT",
-            TokenType::Colon => "COLON",
-            TokenType::Equals => "EQUALS",
-            TokenType::LeftBrace => "LEFT_BRC",
-            TokenType::LeftParen => "LEFT_PAR",
-            TokenType::RightBrace => "RGHT_BRC",
-            TokenType::RightParen => "RGHT_PAR",
-            TokenType::Semicolon => "SEMICOL",
-            TokenType::Star => "STAR",
-            TokenType::Function => "K_FUNC",
-            TokenType::Let => "K_LET",
-            TokenType::Return => "K_RET",
-            TokenType::Identifier => "L_IDENT",
-            TokenType::IntegerLiteral => "L_INT",
-        }.to_string();
-
-        assert!(token_str.len() <= 8, "Max 8 chars for token string, \"{}\" is too long", token_str);
-
-        token_str
-    }
-}
-
-static KEYWORDS: phf::Map<&'static str, TokenType> = phf::phf_map! {
-    "let" => TokenType::Let,
-    "function" => TokenType::Function,
-    "return" => TokenType::Return,
-};
-
-#[derive(Debug, Clone)]
-pub(crate) struct Token {
-    pub(crate) type_: TokenType,
-    pub(crate) value: String,
-    pub(crate) span: std::ops::Range<usize>,
-}
-
-impl std::fmt::Display for Token {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:8} | {:16} | {:#04}..{:#04}", String::from(self.type_), self.value, self.span.start, self.span.end)
-    }
-}
+use super::token::{Token, TokenType, KEYWORDS};
 
 #[derive(Debug, Clone)]
 pub(crate) struct Lexer<'a> {
@@ -230,7 +159,6 @@ impl<'a> Lexer<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use log::debug;
     use crate::tests::before_each;
 
     #[test]
