@@ -1,4 +1,4 @@
-use super::{token::{Token, TokenType}, CompilerResult, CompilerError, ErrorCode, statement::{Statement, StatementType, LetStatement}};
+use super::{token::TokenStream, CompilerResult, statement::Statement};
 use crate::lang::util::vec::Unshift;
 
 #[derive(Debug, Clone)]
@@ -14,13 +14,13 @@ impl Parser {
         Self {}
     }
 
-    pub(crate) fn parse<'a>(&'a mut self, tokens: &'a mut Vec<Token>) -> CompilerResult<AST> {
+    pub(crate) fn parse<'a>(&'a mut self, tokens: &mut TokenStream) -> CompilerResult<AST> {
         let mut ast = AST {
             statements: Vec::new(),
         };
 
-        while let Some(token) = tokens.unshift() {
-            ast.statements.push(Statement::parse(token, tokens)?);
+        while let Some(token) = tokens.peek() {
+            ast.statements.push(Statement::parse(tokens)?);
         }
 
         Ok(ast)

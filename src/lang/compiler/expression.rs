@@ -1,6 +1,6 @@
-use crate::lang::util::vec::{UnshiftExpect, Unshift};
+use crate::lang::util::vec::Unshift;
 
-use super::{token::{Span, Token, TokenType}, CompilerResult, CompilerError, ErrorCode};
+use super::{token::{Span, Token, TokenType, TokenStream}, CompilerResult, CompilerError, ErrorCode};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct Expression {
@@ -36,21 +36,23 @@ impl Into<LiteralType> for TokenType {
 }
 
 impl Expression {
-    pub(crate) fn parse(tokens: &mut Vec<Token>) -> CompilerResult<Expression> {
+    pub(crate) fn parse(tokens: &mut TokenStream) -> CompilerResult<Expression> {
         let expression = Expression::parse_literal(tokens)?;
+
+        // TODO: Create a recursive descent parser for expressions
 
         Ok(expression)
     }
 
-    fn parse_literal(tokens: &mut Vec<Token>) -> CompilerResult<Expression> {
-        let literal_token = match tokens.unshift() {
-            Some(token) if token.type_ == TokenType::IntegerLiteral => token,
+    fn parse_literal(tokens: &mut TokenStream) -> CompilerResult<Expression> {
+        let literal_token = match tokens.peek() {
+            Some(token) if token.type_ == TokenType::IntegerLiteral => tokens.unshift().unwrap(),
             Some(token) => {
                 return Err(CompilerError {
                     error_code: ErrorCode::UnexpectedToken,
                     error_message: format!("Invalid expression: got '{}'", token.value),
                     span_message: String::from(""),
-                    token,
+                    token: tokens.unshift().unwrap().clone(),
                     help: Some(String::from("Expected one of: \n- Integer literal\n- TODO: More exprected tokens")),
                     info: None,
                 });
@@ -68,8 +70,8 @@ impl Expression {
         };
 
         return Ok(Expression {
-            type_: ExpressionType::Literal(LiteralExpression {type_: literal_token.type_.into(), value: literal_token.value}),
-            span: literal_token.span, // TODO: When expressions span multiple tokens, this needs to be updated to reflect the entire expression span
+            type_: ExpressionType::Literal(LiteralExpression {type_: literal_token.type_.into(), value: literal_token.value.clone()}),
+            span: literal_token.span.clone(), // TODO: When expressions span multiple tokens, this needs to be updated to reflect the entire expression span
         });
 
     }

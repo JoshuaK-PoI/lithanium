@@ -1,4 +1,4 @@
-use super::token::{Token, TokenType, KEYWORDS};
+use super::token::{Token, TokenStream, TokenType, KEYWORDS};
 
 #[derive(Debug, Clone)]
 pub(crate) struct Lexer<'a> {
@@ -151,8 +151,10 @@ impl<'a> Lexer<'a> {
         v
     }
 
-    pub(crate) fn token_ref(&mut self) -> &mut Vec<Token> {
-        &mut self.tokens
+    pub(crate) fn get_tokens_peekable(&mut self) -> TokenStream {
+        self.tokens
+            .iter_mut()
+            .peekable()
     }
 }
 

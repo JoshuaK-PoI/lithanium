@@ -1,6 +1,6 @@
 use crate::lang::compiler::token::TokenType;
 use core::fmt::Display;
-use log::{debug, trace};
+use log::trace;
 
 use self::{parser::AST, token::Token};
 
@@ -23,6 +23,10 @@ pub(crate) struct CompilerError {
 pub(crate) enum ErrorCode {
     UnknownToken,
     UnexpectedToken,
+    UnshiftedUnexpectedToken,
+    NoTokensLeft,
+    InvalidParameterType,
+    InvalidReturnType,
 }
 
 impl Display for ErrorCode {
@@ -30,6 +34,10 @@ impl Display for ErrorCode {
         match self {
             ErrorCode::UnknownToken => write!(f, "Unknown token"),
             ErrorCode::UnexpectedToken => write!(f, "Unexpected token"),
+            ErrorCode::NoTokensLeft => write!(f, "No tokens left"),
+            ErrorCode::UnshiftedUnexpectedToken => write!(f, "Unshifted unexpected token"),
+            ErrorCode::InvalidParameterType => write!(f, "Invalid parameter type"),
+            ErrorCode::InvalidReturnType => write!(f, "Invalid return type"),
         }
     }
 }
@@ -56,20 +64,19 @@ impl Compiler<'_> {
         self.lexer.lex(self.input);
 
         let mut self_clone = self.clone(); // Clone the `self` reference
-        let unknown_tokens: Vec<&Token> = self
+        let unknown_tokens: Vec<&mut Token> = self
             .lexer
-            .token_ref()
-            .iter()
+            .get_tokens_peekable()
             .filter(|token| token.type_ == TokenType::Unknown)
             .collect();
 
         if unknown_tokens.len() > 0 {
             let errors: Vec<CompilerError> = unknown_tokens
                 .iter()
-                .map(|&token| CompilerError {
+                .map(|token| CompilerError {
                     error_code: ErrorCode::UnknownToken,
                     error_message: format!("Unknown token: {:?}", token.type_), // Clone the token object
-                    token: token.clone(), // Clone the token object
+                    token: (**token).clone(),
                     span_message: format!("This token is unknown to the compiler"),
                     help: None,
                     info: None,
@@ -84,11 +91,11 @@ impl Compiler<'_> {
         trace!("{:#04}..{:#04} {}", "Byte", "Rnge", "Token");
 
         trace!("{:-<1$}", "", 40);
-        for token in self.lexer.token_ref() {
+        for token in self.lexer.get_tokens_peekable() {
             trace!("{}", token);
         }
-
-        let ast = self.parser.parse(self.lexer.token_ref()).map_err(|e| {
+        let mut token_stream = self.lexer.get_tokens_peekable();
+        let ast = self.parser.parse(&mut token_stream).map_err(|e| {
             self_clone.generate_error(&e);
             return format!("Error parsing tokens: {}", e.error_message);
         });
