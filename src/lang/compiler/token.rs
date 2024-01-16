@@ -104,8 +104,8 @@ impl std::fmt::Display for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "{:#04}..{:#04} {:16} '{}'",
-            self.span.start, self.span.end, self.type_, self.value
+            "{:16} '{}' @ {:#04}..{:#04} ",
+            self.type_, self.value, self.span.start, self.span.end
         )
     }
 }
