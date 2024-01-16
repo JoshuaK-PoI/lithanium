@@ -31,6 +31,11 @@ impl<'a> Iterator for Lexer<'a> {
                 String::from("@"),
                 start_position..self.position
             )),
+            Some(',') => Some(make_token!(
+                Comma,
+                String::from(","),
+                start_position..self.position
+            )),
             Some(':') => Some(make_token!(
                 Colon,
                 String::from(":"),
