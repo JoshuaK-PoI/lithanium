@@ -21,12 +21,13 @@ pub(crate) struct CompilerError {
 }
 
 pub(crate) enum ErrorCode {
-    UnknownToken,
-    UnexpectedToken,
-    UnshiftedUnexpectedToken,
-    NoTokensLeft,
+    InvalidExpression,
     InvalidParameterType,
     InvalidReturnType,
+    NoTokensLeft,
+    UnexpectedToken,
+    UnknownToken,
+    UnshiftedUnexpectedToken,
 }
 
 impl Display for ErrorCode {
@@ -38,6 +39,7 @@ impl Display for ErrorCode {
             ErrorCode::UnshiftedUnexpectedToken => write!(f, "Unshifted unexpected token"),
             ErrorCode::InvalidParameterType => write!(f, "Invalid parameter type"),
             ErrorCode::InvalidReturnType => write!(f, "Invalid return type"),
+            ErrorCode::InvalidExpression => write!(f, "Invalid expression"),
         }
     }
 }
@@ -88,12 +90,15 @@ impl Compiler<'_> {
             });
         }
 
-        trace!("{:#04}..{:#04} {}", "Byte", "Rnge", "Token");
+        if log::max_level() >= log::LevelFilter::Trace {
+            trace!("{:#04}..{:#04} {}", "Byte", "Rnge", "Token");
 
-        trace!("{:-<1$}", "", 40);
-        for token in self.lexer.get_tokens_peekable() {
-            trace!("{}", token);
+            trace!("{:-<1$}", "", 40);
+            for token in self.lexer.get_tokens_peekable() {
+                trace!("{}", token);
+            }
         }
+
         let mut token_stream = self.lexer.get_tokens_peekable();
         let ast = self.parser.parse(&mut token_stream).map_err(|e| {
             self_clone.generate_error(&e);

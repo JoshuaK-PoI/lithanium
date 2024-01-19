@@ -1,9 +1,11 @@
-use super::{token::TokenStream, CompilerResult, statement::Statement};
+use serde::Serialize;
+
+use super::{token::TokenStream, CompilerResult, statement::{Statement, SpannedStatement}};
 use crate::lang::util::vec::Unshift;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub(crate) struct AST {
-    statements: Vec<Statement>
+    statements: Vec<SpannedStatement>
 }
 
 #[derive(Debug, Clone)]

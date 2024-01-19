@@ -3,7 +3,7 @@ use super::token::{Token, TokenStream, TokenType, KEYWORDS};
 #[derive(Debug, Clone)]
 pub(crate) struct Lexer<'a> {
     pub(crate) chars: std::iter::Peekable<std::str::Chars<'a>>,
-    pub(crate) tokens: Vec<Token>,
+    tokens: Vec<Token>,
     position: usize,
 }
 
@@ -26,6 +26,11 @@ impl<'a> Iterator for Lexer<'a> {
         let start_position = self.position;
 
         match self.read_char() {
+            Some('*') => Some(make_token!(
+                Asterisk,
+                String::from("*"),
+                start_position..self.position
+            )),
             Some('@') => Some(make_token!(
                 At,
                 String::from("@"),
@@ -71,9 +76,9 @@ impl<'a> Iterator for Lexer<'a> {
                 String::from(";"),
                 start_position..self.position
             )),
-            Some('*') => Some(make_token!(
-                Star,
-                String::from("*"),
+            Some('/') => Some(make_token!(
+                Slash,
+                String::from("/"),
                 start_position..self.position
             )),
             Some(c) if c.is_ascii_alphabetic() => {
@@ -157,9 +162,7 @@ impl<'a> Lexer<'a> {
     }
 
     pub(crate) fn get_tokens_peekable(&mut self) -> TokenStream {
-        self.tokens
-            .iter_mut()
-            .peekable()
+        self.tokens.iter_mut().peekable()
     }
 }
 

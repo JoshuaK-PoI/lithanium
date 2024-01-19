@@ -51,7 +51,7 @@ mod tests {
                     panic!("Error compiling file: {}", err);
                 });
                 let output = format!("{:?}", ast);
-                debug!("Output: {}", output);
+                debug!("Output: {}", serde_json::to_string_pretty(&ast).unwrap());
 
             } else {
                 debug!("Skipping file: {}", file_name);
