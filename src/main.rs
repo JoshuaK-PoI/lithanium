@@ -39,7 +39,6 @@ mod tests {
             let file = file.unwrap();
             let path = file.path();
             let file_name = path.file_name().unwrap().to_str().unwrap();
-            let file_stem = path.file_stem().unwrap().to_str().unwrap();
             let file_ext = path.extension().unwrap().to_str().unwrap();
 
             if file_ext == "lit" {
@@ -50,11 +49,10 @@ mod tests {
                 let ast = compiler.compile().unwrap_or_else(|err| {
                     panic!("Error compiling file: {}", err);
                 });
-                let output = format!("{:?}", ast);
                 debug!("Output: {}", serde_json::to_string_pretty(&ast).unwrap());
 
             } else {
-                debug!("Skipping file: {}", file_name);
+                debug!("Skipping file: {} (not a lithanium source file)", file_name);
             }
         }
     }
