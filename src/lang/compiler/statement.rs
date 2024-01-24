@@ -6,7 +6,7 @@ use super::{
     CompilerError, CompilerResult, ErrorCode,
 };
 
-use crate::lang::util::vec::UnshiftExpect;
+use crate::lang::util::vec::{UnshiftExpect, Unshift};
 
 pub(crate) type SpannedStatement = (StatementType, Span);
 
@@ -63,8 +63,6 @@ pub(crate) enum ParameterType {
     Integer,
     Boolean,
     String,
-    Array(Box<ParameterType>),
-    Function(Box<FunctionStatement>),
 }
 
 impl From<String> for ParameterType {
@@ -144,6 +142,22 @@ impl Statement {
                     .value
                     .clone()
                     .into();
+
+                if parameter_type == ParameterType::Unknown {
+                    return Err(CompilerError {
+                        error_code: ErrorCode::InvalidParameterType,
+                        error_message: format!(
+                            "Invalid parameter type: got '{}'",
+                            tokens.peek().unwrap().value
+                        ),
+                        span_message: String::from(""),
+                        token: tokens.unshift().unwrap().clone(),
+                        help: Some(String::from(
+                            "Expected one of: \n- int\n- bool\n- string",
+                        )),
+                        info: None,
+                    });
+                }
             }
 
             parameters.push(Parameter {
@@ -167,6 +181,22 @@ impl Statement {
                 .value
                 .clone()
                 .into();
+
+            if return_type == ParameterType::Unknown {
+                return Err(CompilerError {
+                    error_code: ErrorCode::InvalidReturnType,
+                    error_message: format!(
+                        "Invalid return type: got '{}'",
+                        tokens.peek().unwrap().value
+                    ),
+                    span_message: String::from(""),
+                    token: tokens.unshift().unwrap().clone(),
+                    help: Some(String::from(
+                        "Expected one of: \n- int\n- bool\n- string",
+                    )),
+                    info: None,
+                });
+            }
         }
 
         let body = Statement::block(tokens)?;

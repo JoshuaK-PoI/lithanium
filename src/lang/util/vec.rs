@@ -1,6 +1,6 @@
 use std::iter::Peekable;
 
-use crate::lang::compiler::{token::{Token, TokenType}, CompilerResult, CompilerError};
+use crate::lang::compiler::CompilerResult;
 
 /// Allows vector elements to be taken from the front of the vector.
 /// It is a safe wrapper for: 

@@ -3,7 +3,7 @@ use serde::Serialize;
 use crate::lang::util::vec::{Unshift, UnshiftExpect};
 
 use super::{
-    token::{self, Span, Token, TokenStream, TokenType},
+    token::{Span, Token, TokenStream, TokenType},
     CompilerError, CompilerResult, ErrorCode,
 };
 

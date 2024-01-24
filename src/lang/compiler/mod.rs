@@ -2,7 +2,9 @@ use crate::lang::compiler::token::TokenType;
 use core::fmt::Display;
 use log::trace;
 
-use self::{parser::AST, token::Token};
+use self::{parser::{AST, Parser}, token::Token};
+
+use super::util::error_logger::ErrorLogger;
 
 pub(crate) mod expression;
 pub(crate) mod lexer;
@@ -49,23 +51,23 @@ pub(crate) struct Compiler<'a> {
     pub(crate) input: &'a str,
     pub(crate) filename: &'a str,
     lexer: lexer::Lexer<'a>,
-    parser: parser::Parser,
+    error_logger: ErrorLogger<'a>,
 }
 
 impl Compiler<'_> {
     pub(crate) fn new<'a>(input: &'a str, filename: &'a str) -> Compiler<'a> {
+        let error_logger = ErrorLogger::new(filename, input);
         Compiler {
             input,
             filename,
             lexer: lexer::Lexer::new(),
-            parser: parser::Parser::new(),
+            error_logger,
         }
     }
 
     pub(crate) fn compile(&mut self) -> Result<AST, String> {
         self.lexer.lex(self.input);
 
-        let mut self_clone = self.clone(); // Clone the `self` reference
         let unknown_tokens: Vec<&mut Token> = self
             .lexer
             .get_tokens_peekable()
@@ -85,9 +87,7 @@ impl Compiler<'_> {
                 })
                 .collect();
 
-            errors.into_iter().for_each(|error| {
-                self_clone.generate_error(&error); // Use the cloned `self` reference
-            });
+            self.error_logger.report_many(&errors);
         }
 
         if log::max_level() >= log::LevelFilter::Trace {
@@ -100,41 +100,11 @@ impl Compiler<'_> {
         }
 
         let mut token_stream = self.lexer.get_tokens_peekable();
-        let ast = self.parser.parse(&mut token_stream).map_err(|e| {
-            self_clone.generate_error(&e);
+        let ast = Parser::parse(&mut token_stream).map_err(|e| {
+            self.error_logger.report(&e);
             return format!("Error parsing tokens: {}", e.error_message);
         });
 
         ast
-    }
-
-    fn generate_error(&mut self, error_detail: &CompilerError) {
-        use ariadne::{ColorGenerator, Label, Report, ReportKind, Source};
-
-        let mut colors = ColorGenerator::new();
-
-        let color_1 = colors.next();
-
-        let mut report = Report::build(ReportKind::Error, self.filename, 0)
-            .with_code(&error_detail.error_code)
-            .with_message(&error_detail.error_message)
-            .with_label(
-                Label::new((self.filename, error_detail.token.span.clone()))
-                    .with_message(&error_detail.span_message)
-                    .with_color(color_1),
-            );
-
-        if let Some(help) = &error_detail.help {
-            report = report.with_help(help);
-        }
-
-        if let Some(info) = &error_detail.info {
-            report = report.with_note(info);
-        }
-
-        report
-            .finish()
-            .eprint((self.filename, Source::from(self.input)))
-            .unwrap();
     }
 }

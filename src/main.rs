@@ -1,8 +1,27 @@
+use clap::Parser;
+
 pub(crate) mod lang;
-    
+pub(crate) mod args;
+
 fn main() {
-    println!("Hello, world!");
+
+    // Load file from command line argument
+    let args = args::Args::parse();
+    let input = std::fs::read_to_string(&args.input).unwrap_or_else(|err| {
+        panic!("Error reading file: {}", err);
+    });
     
+    // Compile file
+    let mut compiler = lang::compiler::Compiler::new(&input, &args.input);
+
+    let ast = compiler.compile().unwrap_or_else(|err| {
+        panic!("Error compiling file: {}", err);
+    });
+
+    // Print AST
+    if args.debug {
+        println!("{}", serde_json::to_string_pretty(&ast).unwrap());
+    }
 }
 
 

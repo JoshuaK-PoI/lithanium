@@ -1,7 +1,6 @@
 use serde::Serialize;
 
 use super::{token::TokenStream, CompilerResult, statement::{Statement, SpannedStatement}};
-use crate::lang::util::vec::Unshift;
 
 #[derive(Debug, Clone, Serialize)]
 pub(crate) struct AST {
@@ -12,16 +11,12 @@ pub(crate) struct AST {
 pub(crate) struct Parser {}
 
 impl Parser {
-    pub(crate) fn new() -> Self {
-        Self {}
-    }
-
-    pub(crate) fn parse<'a>(&'a mut self, tokens: &mut TokenStream) -> CompilerResult<AST> {
+    pub(crate) fn parse<'a>(tokens: &mut TokenStream) -> CompilerResult<AST> {
         let mut ast = AST {
             statements: Vec::new(),
         };
 
-        while let Some(token) = tokens.peek() {
+        while let Some(_) = tokens.peek() {
             ast.statements.push(Statement::parse(tokens)?);
         }
 
